@@ -73,7 +73,7 @@ def load(data):
 # Define the DAG
 dag = DAG(
     dag_id='web_article_scraping',
-    start_date=datetime(2024, 5, 6),
+    start_date=datetime(2024, 5, 7),
     schedule_interval='@daily'
 )
 
@@ -100,7 +100,7 @@ load_task = PythonOperator(
 dvc_add_and_push_command = """
 cd /mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02 && \
 dvc add extracted_data.csv && \
-git add extracted_data.csv.dvc && \
+git add . && \
 git commit -m 'committed via airflow' && \
 dvc push
 git push
