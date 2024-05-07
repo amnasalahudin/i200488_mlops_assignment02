@@ -1,0 +1,44 @@
+Documentation for Data Preprocessing Steps and DVC Setup
+
+Data Preprocessing Steps
+
+The data preprocessing in the Apache Airflow DAG involves key steps to ensure that the text data extracted from the websites is clean and formatted appropriately for further analysis. Below are the details of these steps:
+
+1. Data Extraction:
+   - The extraction process targets articles from the homepages of dawn.com and BBC.com.
+   - It involves scraping the homepage to find article links and then visiting each article link to scrape the title and description.
+   - This is achieved using the BeautifulSoup library in Python, which parses the HTML content of the web pages.
+
+2. Data Cleaning and Transformation:
+   - After extraction, the data undergoes a transformation process to clean and format it.
+   - This includes stripping extra spaces, removing special characters if necessary, and ensuring that the text is in a suitable format (e.g., proper encoding).
+   - Each article's title and description are encapsulated into a dictionary with their respective source, making it easier to track the origin of each piece of data.
+
+3. Preparing Data for Storage:
+   - The transformed data is then structured into a pandas DataFrame, which provides a tabular form that is easy to manipulate and store.
+   - Any rows with missing titles or descriptions are dropped to maintain the quality of the dataset.
+
+The Python function `transform()` in the DAG is responsible for these preprocessing steps, ensuring that the data is ready for storage and further analysis.
+
+DVC Setup
+
+Data Version Control (DVC) is an open-source tool designed to handle large files, data sets, machine learning models, and experiments. The setup involves the following steps integrated into the Airflow DAG:
+
+1. Initial Setup:
+   - Install DVC using pip --> pip install dvc
+   - Initialize DVC in the project directory where the data files are located --> dvc init
+
+2. Configuring Remote Storage:
+   - Set up a remote storage location for the data versions. In this assignment Google Drive is used
+   - Configure DVC to use this remote by adding it with a specific name --> dvc remote add -d mydrive gdrive://10Bz1v5WityVmV2vfCn7Y8evUAJsGntv9
+
+3. Integrating DVC with Airflow:
+   - After data loading, use DVC commands to track changes in the data files.
+   - The BashOperator in Airflow runs a script that includes:
+     - Navigating to the project directory.
+     - Adding the data file to DVC tracking (`dvc add`).
+     - Committing changes to Git along with the DVC files that describe the data (`git add . && git commit -m 'Update'`).
+     - Pushing the changes to the remote storage (`dvc push`) and the Git repository (`git push`).
+
+4. Automated Version Control:
+   - Every execution of the DAG ensures that new changes in data are tracked and version-controlled automatically.
