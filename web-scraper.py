@@ -5,6 +5,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import re
 import logging
 
 # Setup logging
@@ -60,15 +61,24 @@ def extract():
     return data
 
 def transform(data):
-    """Transforms data for loading"""
-    transformed_data = [{'id': i+1, 'title': row['title'], 'description': row['description'], 'source': row['source']} for i, row in enumerate(data)]
+    """Transforms data for loading. Cleans and formats text."""
+    transformed_data = []
+    for i, row in enumerate(data):
+        title = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', row['title'])).strip()
+        description = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', row['description'])).strip()
+        transformed_data.append({
+            'id': i + 1,
+            'title': title,
+            'description': description,
+            'source': row['source']
+        })
     return transformed_data
 
 def load(data):
     """Loads data into a CSV file"""
     df = pd.DataFrame(data)
     df = df.dropna(subset=['title', 'description'])  # Drop rows where 'title' or 'description' is None
-    df.to_csv('/mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02/extracted_data.csv', index=False) 
+    df.to_csv('/mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02/extracted_data.csv', index=False)
 
 # Define the DAG
 dag = DAG(
