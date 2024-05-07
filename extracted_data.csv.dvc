@@ -1,0 +1,6 @@
+outs:
+- md5: 268313d4763abd53bba35b9e1076a989
+  size: 542122
+  isexec: true
+  hash: md5
+  path: extracted_data.csv
