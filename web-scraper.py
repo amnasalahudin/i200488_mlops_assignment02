@@ -68,7 +68,7 @@ def load(data):
     """Loads data into a CSV file"""
     df = pd.DataFrame(data)
     df = df.dropna(subset=['title', 'description'])  # Drop rows where 'title' or 'description' is None
-    df.to_csv('/mnt/c/Users/Spectre/OneDrive/Desktop/i200488-mlops-assignment02/extracted_data.csv', index=False) 
+    df.to_csv('/mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02/extracted_data.csv', index=False) 
 
 # Define the DAG
 dag = DAG(
