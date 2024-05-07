@@ -8,21 +8,27 @@ import pandas as pd
 import re
 import logging
 
-# Setup logging
+# Set up logging to enable tracking of events, errors, and warnings
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def extract_article_details(url):
-    """Extracts title and description from an article URL."""
+    """
+    Extracts title and description from a given URL using BeautifulSoup.
+    Handles network errors and HTML parsing issues gracefully.
+    """
     try:
-        response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = requests.get(url, timeout=10)  # Make an HTTP request to the URL
+        soup = BeautifulSoup(response.text, 'html.parser')  # Parse the HTML content
         
+        # Extract the title of the article
         title_element = soup.find('title')
         title = title_element.text.strip() if title_element else None
         
+        # Extract all paragraph contents and combine into one description string
         paragraphs = soup.find_all('p')
         description = ' '.join([p.text.strip() for p in paragraphs if p.text.strip()]) if paragraphs else None
         
+        # Log warnings for missing title or description
         if not title or not description:
             logging.warning(f"No valid title or description for URL: {url}")
             return None, None
@@ -35,23 +41,28 @@ def extract_article_details(url):
         return None, None
 
 def extract():
-    """Extracts article links from BBC.com and Dawn.com, then fetches title and description from those articles."""
+    """
+    Extracts links, titles, and descriptions from the homepages of predefined news sources.
+    Returns a list of dictionaries containing the extracted data.
+    """
     data = []
     sources = {
         'BBC': 'https://www.bbc.com',
         'Dawn': 'https://www.dawn.com'
     }
     selectors = {
-        'BBC': 'a[data-testid="internal-link"]',  # BBC links within cards
-        'Dawn': 'article.story a.story__link'  # Dawn story links
+        'BBC': 'a[data-testid="internal-link"]',  # Selector for BBC article links
+        'Dawn': 'article.story a.story__link'  # Selector for Dawn article links
     }
 
+    # Iterate over each news source and scrape the homepage for article links
     for source, base_url in sources.items():
         response = requests.get(base_url)
         soup = BeautifulSoup(response.text, 'html.parser')
         links = [a['href'] for a in soup.select(selectors[source]) if 'href' in a.attrs]
         links = [link if link.startswith('http') else base_url + link for link in links]
 
+        # Extract article details from each link
         for link in links:
             title, description = extract_article_details(link)
             if title and description:
@@ -61,9 +72,13 @@ def extract():
     return data
 
 def transform(data):
-    """Transforms data for loading. Cleans and formats text."""
+    """
+    Transforms extracted data by cleaning and formatting text.
+    Removes special characters and excessive whitespace.
+    """
     transformed_data = []
     for i, row in enumerate(data):
+        # Clean and format the title and description text
         title = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', row['title'])).strip()
         description = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', row['description'])).strip()
         transformed_data.append({
@@ -75,19 +90,22 @@ def transform(data):
     return transformed_data
 
 def load(data):
-    """Loads data into a CSV file"""
+    """
+    Loads the transformed data into a CSV file.
+    Filters out any entries without a title or description before saving.
+    """
     df = pd.DataFrame(data)
-    df = df.dropna(subset=['title', 'description'])  # Drop rows where 'title' or 'description' is None
+    df = df.dropna(subset=['title', 'description'])  # Ensure data completeness
     df.to_csv('/mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02/extracted_data.csv', index=False)
 
-# Define the DAG
+# Define the DAG configuration
 dag = DAG(
     dag_id='web_article_scraping',
     start_date=datetime(2024, 5, 7),
     schedule_interval='@daily'
 )
 
-# Define tasks
+# Define tasks using PythonOperator and BashOperator
 extract_task = PythonOperator(
     task_id='extract',
     python_callable=extract,
@@ -106,7 +124,7 @@ load_task = PythonOperator(
     dag=dag
 )
 
-# Bash command to add and push data to DVC
+# Bash command to add and push data to DVC and Git
 dvc_add_and_push_command = """
 cd /mnt/c/Users/Spectre/OneDrive/Desktop/i200488_mlops_assignment02 && \
 dvc add extracted_data.csv && \
@@ -122,5 +140,5 @@ dvc_task = BashOperator(
     dag=dag
 )
 
-# Set task dependencies
+# Set dependencies between tasks to ensure correct task execution order
 extract_task >> transform_task >> load_task >> dvc_task
